@@ -1,0 +1,18 @@
+{
+  "greetings": [
+    "nuzzles <nick>",
+    "jumps on <nick>'s lap",
+    "cuddles up to <nick>",
+    "rubs against <nick>'s legs",
+    "boops <nick>'s nose'"
+  ],
+
+  "happy_actions": [
+    "purrs",
+    "wiggles",
+    "stretches",
+    "squirms",
+    "rolls around",
+    "nuzzles"
+  ]
+}
