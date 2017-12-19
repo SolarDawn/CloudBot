@@ -1,11 +1,11 @@
 {
   "pet": {
+    "energy": 60,
     "greetings": [
       "nuzzles <nick>",
       "jumps on <nick>'s lap",
       "cuddles up to <nick>",
-      "rubs against <nick>'s legs",
-      "boops <nick>'s nose'"
+      "boops <nick>'s nose"
     ],
 
     "happy_actions": [
@@ -15,16 +15,35 @@
       "squirms",
       "rolls around",
       "nuzzles"
+    ],
+    
+    "beg_actions": [
+      "sniffs their food bowl",
+      "looks longingly at their empty bowl"
+    ],
+    
+    "eat_actions": [
+      "chows down on their food",
+      "tears into their food",
+      "munches down their food",
+      "makes a mess of their food"
+    ],
+    
+    "sleep_actions": [
+      "curls up in their bed",
+      "closes their eyes and falls asleep",
+      "begins snoring peacefully"
     ]
   },
 
   "cat": {
+    "energy": 60,
     "greetings": [
       "nuzzles <nick>",
       "jumps on <nick>'s lap",
       "cuddles up to <nick>",
       "rubs against <nick>'s legs",
-      "boops <nick>'s nose'"
+      "boops <nick>'s nose"
     ],
 
     "happy_actions": [
@@ -35,6 +54,7 @@
   },
 
   "dog": {
+    "energy": 120,
     "greetings": [
       "runs over to <nick>",
       "jumps on <nick>",
@@ -52,6 +72,7 @@
   },
   
   "fox": {
+    "energy": 240,
     "greetings": [
       "runs over to <nick>",
       "jumps on <nick>",
