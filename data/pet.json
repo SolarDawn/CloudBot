@@ -49,5 +49,23 @@
       "licks <nick>'s face",
       "wags their tail"
     ]
+  },
+  
+  "fox": {
+    "greetings": [
+      "runs over to <nick>",
+      "jumps on <nick>",
+      "runs in circles around <nick>",
+      "pounces on <nick>"
+    ],
+    
+    "happy_actions": [
+      "wiggles",
+      "stretches",
+      "squirms",
+      "rolls around",
+      "licks <nick>'s face",
+      "wags their tail"
+    ]
   }
 }

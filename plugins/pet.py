@@ -27,7 +27,7 @@ class Pet:
         self.pet_type = pet_type
 
     def get_action(self, action_type):
-        if self.pet_type in pet_actions:
+        if self.pet_type in pet_actions and action_type in pet_actions[self.pet_type]:
             return random.choice(pet_actions[self.pet_type][action_type])
         else:
             return random.choice(pet_actions['pet'][action_type])
@@ -46,7 +46,7 @@ def load_pets(bot, db):
         pet_actions = json.load(f)
 
 
-@hook.command()
+@hook.command("addpet", "apet")
 def addpet(event, db, nick, text):
     """[pet name] [pet species] - creates a new pet"""
     args = text.split(" ")
@@ -65,6 +65,40 @@ def addpet(event, db, nick, text):
         db.commit()
         return "Added new " + newpet.pet_type + " " + newpet.name
 
+
+@hook.command("removepet", "rpet")
+def removepet(event, db, nick, text):
+    """[pet name] - removes a pet that belongs to you"""
+    args = text.split(" ")
+    if len(args) < 1:
+        event.notice_doc()
+        return
+    
+    if args[0] in pets:
+        # pet exists
+        delpet = pets[args[0]]
+        if nick == delpet.owner:
+            db.execute(pet_table.delete().where(pet_table.c.pet_name == args[0]))
+            db.commit()
+            del pets[args[0]]
+            return "Deleted pet " + args[0]
+        else:
+            return args[0] + " is not one of your pets"
+    else:
+        return "No pet by that name"
+
+
+@hook.command("listpets", "lpet", "lpets")
+def listpets():
+    #"""lists all the pets"""
+    outstr = "Pets: "
+    for i in pets:
+        outstr += pets[i].name + "(" + pets[i].pet_type + "), "
+    
+    if outstr.endswith(", "):
+        return outstr[:-2]
+    else:
+        return outstr
 
 beckon_re = re.compile(r'(?:come(?: here)|here|hey|beckons) (\w+)', re.I)
 @hook.regex(beckon_re)
