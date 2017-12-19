@@ -2,6 +2,7 @@ import os
 import codecs
 import json
 import random
+import re
 import requests
 from sqlalchemy import Table, Column, PrimaryKeyConstraint, String
 
@@ -24,6 +25,12 @@ class Pet:
         self.name = name
         self.owner = owner
         self.pet_type = pet_type
+
+    def get_action(self, action_type):
+        if self.pet_type in pet_actions:
+            return random.choice(pet_actions[self.pet_type][action_type])
+        else:
+            return random.choice(pet_actions['pet'][action_type])
 
 @hook.on_start()
 def load_pets(bot, db):
@@ -59,19 +66,40 @@ def addpet(event, db, nick, text):
         return "Added new " + newpet.pet_type + " " + newpet.name
 
 
-@hook.regex(r'(?i)(?:come( here)|here|hey) (\w+)')
+beckon_re = re.compile(r'(?:come(?: here)|here|hey|beckons) (\w+)', re.I)
+@hook.regex(beckon_re)
 def beckon(match, nick, message):
-    if match.group(2) in pets:
-
-        cur_pet = pets[match.group(2)]
-        if cur_pet.pet_type in pet_actions:
-            response = random.choice(pet_actions[cur_pet.pet_type]['greetings']).replace("<nick>", nick)
-        else:
-            response = random.choice(pet_actions['pet']['greetings']).replace("<nick>", nick)
-
-        message("\x1D*" + cur_pet.name + " " + response + colors.parse("*$(clear)") + chr(0x1D))
+    if match.group(1) in pets:
+        cur_pet = pets[match.group(1)]
+        response = cur_pet.get_action('greetings').replace("<nick>", nick)
+        message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
 
-@hook.regex(r'(?i)(?:pets|rubs|scratches) (\w+)')
-def affection(match, action):
-    return ""
+affection_re = re.compile(r'(?:pets|rubs|scratches|boops) (\w+)', re.I)
+@hook.regex(affection_re)
+def affection(match, nick, message):
+    if match.group(1) in pets:
+        cur_pet = pets[match.group(1)]
+        response = cur_pet.get_action('happy_actions').replace("<nick>", nick)
+        message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
+
+
+@hook.irc_raw("PRIVMSG")
+def parse_actions(irc_raw, message):
+    i = irc_raw.find(":\x01ACTION")
+    if i > -1:
+        i += 9
+        nick_end = irc_raw.find("!")
+        nick = irc_raw[1:nick_end]
+        
+        text = irc_raw[i:-1]
+        
+        match = beckon_re.match(text)
+        if (match):
+            beckon(match, nick, message)
+            return
+        
+        match = affection_re.match(text)
+        if (match):
+            affection(match, nick, message)
+            return
