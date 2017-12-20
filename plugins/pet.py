@@ -257,9 +257,20 @@ affection_re = re.compile(r'(?:pets|rubs|scratches|boops) (\w+)', re.I)
 
 
 @hook.regex(affection_re)
-def affection(match, nick, message):
-    if match.group(1) in pets:
-        cur_pet = pets[match.group(1)]
+def affection_regex(match, nick, message):
+    _love_pet(match.group(1), nick, message)
+
+
+@hook.command("pet", "rub", "scratch", "boop")
+def affection(text, nick, message):
+    args = text.split(" ")
+    if len(args) >= 1:
+        _love_pet(args[0], nick, message)
+
+
+def _love_pet(pet_name, nick, message):
+    if pet_name in pets:
+        cur_pet = pets[pet_name]
         response = cur_pet.get_action('happy_actions', nick)
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
@@ -268,12 +279,31 @@ feed_re = re.compile(r'feeds (\w+)|fills (\w+)(?:\'s)? (?:food|(?:bowl|dish))|gi
 
 
 @hook.regex(feed_re)
-def feed(match, nick, message):
+def feed_regex(match, nick, message):
     pet_name = ""
     for group in match.groups():
         if group is not None:
             pet_name = group
 
+    if pet_name is not None:
+        _feed_pet(pet_name, nick, message)
+
+
+@hook.command()
+def feed(text, nick, message):
+    args = text.split(" ")
+    if len(args) >= 1:
+        _feed_pet(args[0], nick, message)
+
+
+def _feed_pet(pet_name, nick, message):
+    """
+    Feed a pet
+
+    :param str pet_name: name of the pet to feed
+    :param str nick: nick of command caller
+    :param message: message function
+    """
     if pet_name in pets:
         cur_pet = pets[pet_name]
         if cur_pet.hunger >= max_hunger * 3/4:
@@ -309,7 +339,7 @@ def parse_actions(irc_raw, message):
 
         match = feed_re.match(text)
         if match:
-            feed(match, nick, message)
+            feed_regex(match, nick, message)
             return
 
 
