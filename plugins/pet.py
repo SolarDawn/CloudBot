@@ -1,3 +1,4 @@
+import asyncio
 import os
 import codecs
 import json
@@ -9,8 +10,8 @@ from cloudbot import hook
 from cloudbot.util import database
 
 # MAX_HUNGER = 360
-MAX_HUNGER = 2
-MAX_TIREDNESS = 2
+MAX_HUNGER = 5
+MAX_TIREDNESS = 15
 
 pet_table = Table(
     "pets",
@@ -26,7 +27,15 @@ pets = {}
 
 
 class Pet:
-    def __init__(self, name, owner, species, channel = None):
+    def __init__(self, name, owner, species="pet", channel=None):
+        """
+        Create a new pet object
+
+        :param name: name of the pet
+        :param owner: name of the pet's owner (irc nick)
+        :param species: species/type of the pet, if specified allows species-specific actions
+        :param channel: channel that the pet lives in
+        """
         self.name = name
         self.owner = owner
         self.species = species
@@ -42,11 +51,23 @@ class Pet:
         self.sleeping = False
         self.sleep_delay = 0
 
-    def get_action(self, action_type):
+    def get_action(self, action_type, nick=None):
+        """
+        Get a random entry from the actions list, of the specified type
+
+        :param str action_type: a key in pet_actions that specifies the desired action type
+        :param str nick: the username to be used in action templates, defaults to the pet owner
+        :return: a random action string of the specified type
+        :rtype: str
+        """
+        if nick is None:
+            nick = self.owner
         if self.species in pet_actions and action_type in pet_actions[self.species]:
-            return random.choice(pet_actions[self.species][action_type])
+            return random.choice(pet_actions[self.species][action_type]).replace("<nick>", nick)
+        elif action_type in pet_actions['pet']:
+            return random.choice(pet_actions['pet'][action_type]).replace("<nick>", nick)
         else:
-            return random.choice(pet_actions['pet'][action_type])
+            return ""
 
 
 @hook.on_start()
@@ -108,10 +129,9 @@ def removepet(event, db, nick, text):
 
 @hook.command("listpets", "lpet", "lpets")
 def listpets():
-    """lists all the pets"""
     outstr = "Pets: "
     for name, pet in pets.items():
-        outstr += name + "(" + pet.species + "), "
+        outstr += name + " (" + pet.species + "), "
 
     if outstr.endswith(", "):
         return outstr[:-2]
@@ -126,7 +146,7 @@ beckon_re = re.compile(r'(?:come(?: here)|here|hey|beckons) (\w+)', re.I)
 def beckon(match, nick, message):
     if match.group(1) in pets:
         cur_pet = pets[match.group(1)]
-        response = cur_pet.get_action('greetings').replace("<nick>", nick)
+        response = cur_pet.get_action('greetings', nick)
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
 
@@ -137,7 +157,7 @@ affection_re = re.compile(r'(?:pets|rubs|scratches|boops) (\w+)', re.I)
 def affection(match, nick, message):
     if match.group(1) in pets:
         cur_pet = pets[match.group(1)]
-        response = cur_pet.get_action('happy_actions').replace("<nick>", nick)
+        response = cur_pet.get_action('happy_actions', nick)
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
 
@@ -156,7 +176,7 @@ def feed(match, nick, message):
         if cur_pet.hunger >= MAX_HUNGER * 3/4:
             # hungry enough to eat
             cur_pet.hunger = 0
-            response = cur_pet.get_action('eat_actions').replace("<nick>", nick)
+            response = cur_pet.get_action('eat_actions', nick)
             message("\x1D*" + cur_pet.name + " " + response + "*\x1D")
             return
         else:
@@ -210,7 +230,7 @@ def update_pet_states(bot):
             else:
                 # time to beg
                 pet.begging = False
-                response = pet.get_action("beg_actions").replace("<nick>", pet.owner)
+                response = pet.get_action("beg_actions")
                 if pet.channel is not None:
                     my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
 
@@ -221,12 +241,20 @@ def update_pet_states(bot):
             else:
                 pet.sleeping = False
                 pet.tiredness = 0
-
+                response = pet.get_action("greetings", pet.owner)
+                if pet.channel is not None:
+                    my_conn.message(pet.channel, "\x1D*" + name + " wakes up and " + response + "*\x1D")
         else:
             # awake
-            pet.tiredness += 1
-
-        if pet.channel is not None:
-            my_conn.message(pet.channel, "{}: {} hungry, {} tired".format(pet.name, pet.hunger, pet.tiredness))
-
+            if pet.tiredness < MAX_TIREDNESS:
+                pet.tiredness += 1
+            elif pet.sleep_delay > 0:
+                # countdown to sleeping
+                pet.sleep_delay -= 1
+            else:
+                # ready to sleep
+                pet.sleep_delay = random.randint(0, 9)
+                response = pet.get_action("sleep_actions")
+                if pet.channel is not None:
+                    my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
     return
