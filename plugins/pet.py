@@ -8,6 +8,8 @@ from sqlalchemy import Table, Column, PrimaryKeyConstraint, String
 from cloudbot import hook
 from cloudbot.util import database
 
+from cloudbot.clients.irc import IrcClient
+
 
 pet_table = Table(
     "pets",
@@ -41,6 +43,8 @@ class Pet:
         self.begging = False
         self.beg_delay = 0
 
+        self.last_played_with_nick = None
+        self.last_played_with_counter = 0
         self.play_counter = 0
 
         self.tiredness = 0
@@ -165,6 +169,33 @@ class Pet:
                     # time to beg
                     return self.beg()
 
+    def play(self, nick=None):
+        if nick is None:
+            nick = self.owner
+        return self.get_action("play_actions", nick)
+
+    def update_play(self):
+        if self.last_played_with_nick is not None:
+            self.last_played_with_counter += 1
+            if self.last_played_with_counter >= 10:
+                # disengage with user
+                self.last_played_with_nick = None
+
+        if self.play_counter <= 0:
+            # play!
+            if self.last_played_with_nick is not None:
+                min_time = round(4 * energy_multiplier / self.energy)
+                max_time = round(8 * energy_multiplier / self.energy)
+                self.play_counter = random.randint(min_time, max_time)
+                return self.play(self.last_played_with_nick)
+            else:
+                min_time = round(20 * energy_multiplier / self.energy)
+                max_time = round(80 * energy_multiplier / self.energy)
+                self.play_counter = random.randint(min_time, max_time)
+                return self.play()
+        else:
+            self.play_counter -= 1
+
 
 @hook.on_start()
 def load_pets(bot, db):
@@ -248,7 +279,7 @@ beckon_re = re.compile(r'(?:come(?: here)|here|hey|beckons) (\w+)', re.I)
 @hook.regex(beckon_re)
 def beckon(match, nick, message):
     if match.group(1) in pets:
-        cur_pet = pets[match.group(1)]
+        cur_pet = pets[match.group(1)]  # type: Pet
         response = cur_pet.get_action('greetings', nick)
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
@@ -262,15 +293,18 @@ def affection_regex(match, nick, message):
 
 
 @hook.command("pet", "rub", "scratch", "boop")
-def affection(text, nick, message):
+def affection(text, nick, message, event):
+    """[pet name] - show affection towards a pet"""
     args = text.split(" ")
-    if len(args) >= 1:
+    if len(args) < 1:
+        event.notice_doc()
+    else:
         _love_pet(args[0], nick, message)
 
 
 def _love_pet(pet_name, nick, message):
     if pet_name in pets:
-        cur_pet = pets[pet_name]
+        cur_pet = pets[pet_name]  # type: Pet
         response = cur_pet.get_action('happy_actions', nick)
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
@@ -290,9 +324,12 @@ def feed_regex(match, nick, message):
 
 
 @hook.command()
-def feed(text, nick, message):
+def feed(text, nick, message, event):
+    """[pet name] - feeds a pet"""
     args = text.split(" ")
-    if len(args) >= 1:
+    if len(args) < 1:
+        event.notice_doc()
+    else:
         _feed_pet(args[0], nick, message)
 
 
@@ -305,7 +342,7 @@ def _feed_pet(pet_name, nick, message):
     :param message: message function
     """
     if pet_name in pets:
-        cur_pet = pets[pet_name]
+        cur_pet = pets[pet_name]  # type: Pet
         if cur_pet.hunger >= max_hunger * 3/4:
             # hungry enough to eat
             cur_pet.hunger = 0
@@ -315,6 +352,49 @@ def _feed_pet(pet_name, nick, message):
         else:
             # not hungry
             message("\x1D*" + cur_pet.name + " sniffs at their food and walks away*\x1D")
+
+
+@hook.command()
+def playwith(text, nick, message, event):
+    """[pet name] - plays with a pet"""
+    args = text.split(" ")
+    if len(args) < 1:
+        event.notice_doc()
+    else:
+        _play_pet(args[0], nick, message)
+
+
+play_re = re.compile(r'plays with (\w+)', re.I)
+
+
+@hook.regex(play_re)
+def play_regex(match, nick, message):
+    _play_pet(match.group(1), nick, message)
+
+
+def _play_pet(pet_name, nick, message):
+    """
+    Play with specified pet
+
+    :param str pet_name: name of the pet to play with
+    :param str nick: nick of the calling user
+    :param message: message function
+    """
+
+    if pet_name in pets:
+        cur_pet = pets[pet_name]  # type: Pet
+        cur_pet.last_played_with_nick = nick
+        cur_pet.last_played_with_counter = 0
+
+        min_time = round(4 / cur_pet.energy)
+        max_time = round(8 / cur_pet.energy)
+        cur_pet.play_counter = random.randint(min_time, max_time)
+
+        response = cur_pet.play(nick)
+        if response is not None:
+            message("\x1D*" + cur_pet.name + " " + response + "*\x1D")
+
+    return
 
 
 @hook.irc_raw("PRIVMSG")
@@ -340,6 +420,11 @@ def parse_actions(irc_raw, message):
         match = feed_re.match(text)
         if match:
             feed_regex(match, nick, message)
+            return
+
+        match = play_re.match(text)
+        if match:
+            play_regex(match, nick, message)
             return
 
 
@@ -371,19 +456,25 @@ def on_join(irc_raw, message, conn, nick, chan):
 
 # run every minute
 @hook.periodic(60)
-def update_pet_states(bot):
-    my_conn = None
+def update_pet_states(bot, logger):
+    my_conn = None  # type: IrcClient
     for conn in bot.connections.values():
         if conn.name == "snoonet":
             my_conn = conn
 
-    for name, pet in pets.items():
+    for name, pet in pets.items():  # type: str,Pet
         # update the pet's hunger status
-        response = pet.update_hunger()
+        response = pet.update_hunger()  # type: str
         if (response is not None) and (pet.channel is not None):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
 
         response = pet.update_sleep()
         if (response is not None) and (pet.channel is not None):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
+
+        response = pet.update_play()
+        logger.info("lpw: {}, lpc: {}, pc: {}, e: {}".format(pet.last_played_with_nick, pet.last_played_with_counter, pet.play_counter, pet.energy))
+        if (response is not None) and (pet.channel is not None):
+            my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
+
     return

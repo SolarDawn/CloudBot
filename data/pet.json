@@ -37,6 +37,9 @@
                 "wakes up and stretches",
                 "wakes up and yawns",
                 "wakes up and jumps out of bed"
+            ],
+            "play_actions": [
+                "plays with <nick>"
             ]
         },
         "cat": {
@@ -52,6 +55,13 @@
                 "purrs",
                 "stretches",
                 "nuzzles"
+            ],
+            "play_actions": [
+                "bats at a piece of lint",
+                "tugs at <nick>'s shirt with their claws",
+                "rolls around with a ball of string",
+                "climbs inside a cardboard box",
+                "pounces on a toy mouse"
             ]
         },
         "dog": {
@@ -68,10 +78,17 @@
                 "rolls around",
                 "licks <nick>'s face",
                 "wags their tail"
+            ],
+            "play_actions": [
+                "plays tug-of-war with <nick>",
+                "jumps on <nick>",
+                "runs around <nick>",
+                "steals a stuffed toy from <nick> and runs",
+                "chews on one of their bones"
             ]
         },
         "fox": {
-            "energy": 4,
+            "energy": 3,
             "greetings": [
                 "runs over to <nick>",
                 "jumps on <nick>",
