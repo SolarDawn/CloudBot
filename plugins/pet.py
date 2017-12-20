@@ -334,7 +334,7 @@ def parse_actions(irc_raw, message):
 
         match = affection_re.match(text)
         if match:
-            affection(match, nick, message)
+            affection_regex(match, nick, message)
             return
 
         match = feed_re.match(text)
