@@ -1,92 +1,91 @@
 {
-  "pet": {
-    "energy": 60,
-    "greetings": [
-      "nuzzles <nick>",
-      "jumps on <nick>'s lap",
-      "cuddles up to <nick>",
-      "boops <nick>'s nose"
-    ],
-
-    "happy_actions": [
-      "purrs",
-      "wiggles",
-      "stretches",
-      "squirms",
-      "rolls around",
-      "nuzzles"
-    ],
-    
-    "beg_actions": [
-      "sniffs their food bowl",
-      "looks longingly at their empty bowl"
-    ],
-    
-    "eat_actions": [
-      "chows down on their food",
-      "tears into their food",
-      "munches down their food",
-      "makes a mess of their food"
-    ],
-    
-    "sleep_actions": [
-      "curls up in their bed",
-      "closes their eyes and falls asleep",
-      "begins snoring peacefully"
-    ]
-  },
-
-  "cat": {
-    "energy": 60,
-    "greetings": [
-      "nuzzles <nick>",
-      "jumps on <nick>'s lap",
-      "cuddles up to <nick>",
-      "rubs against <nick>'s legs",
-      "boops <nick>'s nose"
-    ],
-
-    "happy_actions": [
-      "purrs",
-      "stretches",
-      "nuzzles"
-    ]
-  },
-
-  "dog": {
-    "energy": 120,
-    "greetings": [
-      "runs over to <nick>",
-      "jumps on <nick>",
-      "runs in circles around <nick>"
-    ],
-
-    "happy_actions": [
-      "wiggles",
-      "stretches",
-      "squirms",
-      "rolls around",
-      "licks <nick>'s face",
-      "wags their tail"
-    ]
-  },
-  
-  "fox": {
-    "energy": 240,
-    "greetings": [
-      "runs over to <nick>",
-      "jumps on <nick>",
-      "runs in circles around <nick>",
-      "pounces on <nick>"
-    ],
-    
-    "happy_actions": [
-      "wiggles",
-      "stretches",
-      "squirms",
-      "rolls around",
-      "licks <nick>'s face",
-      "wags their tail"
-    ]
-  }
+    "energy_multiplier": 60,
+    "max_hunger": 360,
+    "pet_types": {
+        "default": {
+            "energy": 1,
+            "greetings": [
+                "nuzzles <nick>",
+                "jumps on <nick>'s lap",
+                "cuddles up to <nick>",
+                "boops <nick>'s nose"
+            ],
+            "happy_actions": [
+                "purrs",
+                "wiggles",
+                "stretches",
+                "squirms",
+                "rolls around",
+                "nuzzles"
+            ],
+            "beg_actions": [
+                "sniffs their food bowl",
+                "looks longingly at their empty bowl"
+            ],
+            "eat_actions": [
+                "chows down on their food",
+                "tears into their food",
+                "munches down their food",
+                "makes a mess of their food"
+            ],
+            "sleep_actions": [
+                "curls up in their bed",
+                "closes their eyes and falls asleep",
+                "begins snoring peacefully"
+            ],
+            "wake_actions": [
+                "wakes up and stretches",
+                "wakes up and yawns",
+                "wakes up and jumps out of bed"
+            ]
+        },
+        "cat": {
+            "energy": 1,
+            "greetings": [
+                "nuzzles <nick>",
+                "jumps on <nick>'s lap",
+                "cuddles up to <nick>",
+                "rubs against <nick>'s legs",
+                "boops <nick>'s nose"
+            ],
+            "happy_actions": [
+                "purrs",
+                "stretches",
+                "nuzzles"
+            ]
+        },
+        "dog": {
+            "energy": 2,
+            "greetings": [
+                "runs over to <nick>",
+                "jumps on <nick>",
+                "runs in circles around <nick>"
+            ],
+            "happy_actions": [
+                "wiggles",
+                "stretches",
+                "squirms",
+                "rolls around",
+                "licks <nick>'s face",
+                "wags their tail"
+            ]
+        },
+        "fox": {
+            "energy": 4,
+            "greetings": [
+                "runs over to <nick>",
+                "jumps on <nick>",
+                "runs in circles around <nick>",
+                "pounces on <nick>"
+            ],
+            "happy_actions": [
+                "wiggles",
+                "stretches",
+                "squirms",
+                "rolls around",
+                "licks <nick>'s face",
+                "wags their tail"
+            ]
+        }
+    }
 }

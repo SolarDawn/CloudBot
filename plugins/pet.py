@@ -1,4 +1,3 @@
-import asyncio
 import os
 import codecs
 import json
@@ -9,9 +8,6 @@ from sqlalchemy import Table, Column, PrimaryKeyConstraint, String
 from cloudbot import hook
 from cloudbot.util import database
 
-# MAX_HUNGER = 360
-MAX_HUNGER = 5
-MAX_TIREDNESS = 15
 
 pet_table = Table(
     "pets",
@@ -49,25 +45,125 @@ class Pet:
 
         self.tiredness = 0
         self.sleeping = False
+        self.ready_to_sleep = False
         self.sleep_delay = 0
+        self.wait_for_owner = False
+
+    @property
+    def energy(self):
+        if self.species in pet_types and "energy" in pet_types[self.species]:
+            return energy_multiplier * pet_types[self.species]['energy']
+        else:
+            return energy_multiplier
 
     def get_action(self, action_type, nick=None):
         """
         Get a random entry from the actions list, of the specified type
 
-        :param str action_type: a key in pet_actions that specifies the desired action type
+        :param str action_type: a key in pet_types that specifies the desired action type
         :param str nick: the username to be used in action templates, defaults to the pet owner
         :return: a random action string of the specified type
         :rtype: str
         """
         if nick is None:
             nick = self.owner
-        if self.species in pet_actions and action_type in pet_actions[self.species]:
-            return random.choice(pet_actions[self.species][action_type]).replace("<nick>", nick)
-        elif action_type in pet_actions['pet']:
-            return random.choice(pet_actions['pet'][action_type]).replace("<nick>", nick)
+        if self.species in pet_types and action_type in pet_types[self.species]:
+            return random.choice(pet_types[self.species][action_type]).replace("<nick>", nick)
+        elif action_type in pet_types['default']:
+            return random.choice(pet_types['default'][action_type]).replace("<nick>", nick)
         else:
             return ""
+
+    def prepare_sleep(self, max_delay=9, wait_for_owner=False):
+        """Start the sleep countdown"""
+        self.ready_to_sleep = True
+        self.wait_for_owner = wait_for_owner
+        self.sleep_delay = random.randint(0, max_delay)
+
+    def sleep(self, wait_for_owner=None):
+        """
+        Put the pet to sleep
+
+        :return: a random sleep action
+        :rtype: str
+        """
+        self.sleeping = True
+        self.ready_to_sleep = False
+        self.sleep_delay = 0
+
+        if wait_for_owner is not None:
+            self.wait_for_owner = wait_for_owner
+
+        return self.get_action("sleep_actions")
+
+    def wakeup(self):
+        """
+        Wake up the pet
+
+        :return: a random wakeup action
+        :rtype: str
+        """
+        self.sleeping = False
+        self.ready_to_sleep = False
+        self.tiredness = 0
+        self.sleep_delay = 0
+        self.wait_for_owner = False
+        return self.get_action("wake_actions")
+
+    def update_sleep(self):
+        if self.sleeping:
+            if self.tiredness > 0:
+                self.tiredness -= 1
+                return None
+            else:
+                if not self.wait_for_owner:
+                    return self.wakeup()
+                else:
+                    # only wake on explicit wake
+                    return None
+        else:
+            if self.ready_to_sleep:
+                if self.sleep_delay <= 0:
+                    # ready to go to sleep
+                    return self.sleep()
+                else:
+                    self.sleep_delay -= 1
+                    return None
+            elif self.tiredness > self.energy and self.sleep_delay <= 0:
+                # get ready to sleep
+                self.prepare_sleep()
+                return None
+            elif not self.ready_to_sleep:
+                # not ready to sleep yet
+                if self.tiredness < self.energy:
+                    self.tiredness += 1
+                return None
+
+    def prepare_beg(self, max_delay=9):
+        self.begging = True
+        self.beg_delay = random.randint(0, max_delay)
+
+    def beg(self):
+        self.begging = False
+        return self.get_action("beg_actions")
+
+    def update_hunger(self):
+        if self.hunger < max_hunger:
+            self.hunger += 1
+
+        if not (self.ready_to_sleep or self.sleeping):
+            if self.hunger >= max_hunger:
+                if not self.begging:
+                    # start begging cycle
+                    self.prepare_beg()
+                    return None
+                elif self.beg_delay > 0:
+                    # countdown to begging
+                    self.beg_delay -= 1
+                    return None
+                else:
+                    # time to beg
+                    return self.beg()
 
 
 @hook.on_start()
@@ -79,9 +175,16 @@ def load_pets(bot, db):
         pets[name] = pet
 
     path = os.path.join(bot.data_dir, "pet.json")
-    global pet_actions
+
+    global pet_types
+    global energy_multiplier
+    global max_hunger
+
     with codecs.open(path, encoding="utf-8") as f:
-        pet_actions = json.load(f)
+        pet_config = json.load(f)
+        pet_types = pet_config["pet_types"]
+        energy_multiplier = pet_config["energy_multiplier"]
+        max_hunger = pet_config["max_hunger"]
 
 
 @hook.command("addpet", "apet")
@@ -173,7 +276,7 @@ def feed(match, nick, message):
 
     if pet_name in pets:
         cur_pet = pets[pet_name]
-        if cur_pet.hunger >= MAX_HUNGER * 3/4:
+        if cur_pet.hunger >= max_hunger * 3/4:
             # hungry enough to eat
             cur_pet.hunger = 0
             response = cur_pet.get_action('eat_actions', nick)
@@ -210,7 +313,34 @@ def parse_actions(irc_raw, message):
             return
 
 
-@hook.periodic(10)
+@hook.irc_raw(["PART", "QUIT"])
+def on_leave(irc_raw, message, conn, nick, chan):
+    if nick != conn.nick and (irc_raw.lower().find("changing host") == -1):
+        for name, pet in pets.items():
+            if pet.owner == nick:
+                response = pet.sleep(True)
+                message("\x1D*" + name + " " + response + " waiting for " + nick + " to return*\x1D", chan)
+
+    return
+
+
+@hook.irc_raw("JOIN")
+def on_join(irc_raw, message, conn, nick, chan):
+    if nick != conn.nick:
+        for name, pet in pets.items():
+            if pet.owner == nick and pet.channel == chan:
+                if pet.sleeping:
+                    response = pet.wakeup()
+                    message("\x1D*" + name + " " + response + "*\x1D", chan)
+                else:
+                    response = pet.get_action("greetings", nick)
+                    message("\x1D*" + name + " " + response + "*\x1D", chan)
+
+    return
+
+
+# run every minute
+@hook.periodic(60)
 def update_pet_states(bot):
     my_conn = None
     for conn in bot.connections.values():
@@ -218,43 +348,12 @@ def update_pet_states(bot):
             my_conn = conn
 
     for name, pet in pets.items():
-        if pet.hunger < MAX_HUNGER:
-            pet.hunger += 1
-        else:
-            if not pet.begging:
-                pet.begging = True
-                pet.beg_delay = random.randint(0, 9)
-            elif pet.beg_delay > 0:
-                # countdown to begging
-                pet.beg_delay -= 1
-            else:
-                # time to beg
-                pet.begging = False
-                response = pet.get_action("beg_actions")
-                if pet.channel is not None:
-                    my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
+        # update the pet's hunger status
+        response = pet.update_hunger()
+        if (response is not None) and (pet.channel is not None):
+            my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
 
-        if pet.sleeping:
-            # sleeping
-            if pet.tiredness > 0:
-                pet.tiredness -= 1
-            else:
-                pet.sleeping = False
-                pet.tiredness = 0
-                response = pet.get_action("greetings", pet.owner)
-                if pet.channel is not None:
-                    my_conn.message(pet.channel, "\x1D*" + name + " wakes up and " + response + "*\x1D")
-        else:
-            # awake
-            if pet.tiredness < MAX_TIREDNESS:
-                pet.tiredness += 1
-            elif pet.sleep_delay > 0:
-                # countdown to sleeping
-                pet.sleep_delay -= 1
-            else:
-                # ready to sleep
-                pet.sleep_delay = random.randint(0, 9)
-                response = pet.get_action("sleep_actions")
-                if pet.channel is not None:
-                    my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
+        response = pet.update_sleep()
+        if (response is not None) and (pet.channel is not None):
+            my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
     return
