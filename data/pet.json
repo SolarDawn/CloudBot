@@ -88,7 +88,7 @@
             ]
         },
         "fox": {
-            "energy": 3,
+            "energy": 2,
             "greetings": [
                 "runs over to <nick>",
                 "jumps on <nick>",
@@ -102,6 +102,12 @@
                 "rolls around",
                 "licks <nick>'s face",
                 "wags their tail"
+            ],
+            "play_actions": [
+                "runs around <nick>",
+                "pounces on <nick>",
+                "pounces on a stuffed animal",
+                ""
             ]
         }
     }

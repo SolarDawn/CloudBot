@@ -3,13 +3,14 @@ import codecs
 import json
 import random
 import re
+
+import time
 from sqlalchemy import Table, Column, PrimaryKeyConstraint, String
 
 from cloudbot import hook
 from cloudbot.util import database
 
 from cloudbot.clients.irc import IrcClient
-
 
 pet_table = Table(
     "pets",
@@ -54,11 +55,18 @@ class Pet:
         self.wait_for_owner = False
 
     @property
+    def energy_level(self):
+        if self.species in pet_types and "energy" in pet_types[self.species]:
+            return pet_types[self.species]['energy']
+        else:
+            return pet_types['default']['energy']
+
+    @property
     def energy(self):
         if self.species in pet_types and "energy" in pet_types[self.species]:
             return energy_multiplier * pet_types[self.species]['energy']
         else:
-            return energy_multiplier
+            return energy_multiplier * pet_types['default']['energy']
 
     def get_action(self, action_type, nick=None):
         """
@@ -71,6 +79,7 @@ class Pet:
         """
         if nick is None:
             nick = self.owner
+
         if self.species in pet_types and action_type in pet_types[self.species]:
             return random.choice(pet_types[self.species][action_type]).replace("<nick>", nick)
         elif action_type in pet_types['default']:
@@ -181,20 +190,24 @@ class Pet:
                 # disengage with user
                 self.last_played_with_nick = None
 
+        if self.sleeping:
+            return None
+
         if self.play_counter <= 0:
             # play!
             if self.last_played_with_nick is not None:
-                min_time = round(4 * energy_multiplier / self.energy)
-                max_time = round(8 * energy_multiplier / self.energy)
+                min_time = round(3 / self.energy_level + 2)
+                max_time = round(8 / self.energy_level + 2)
                 self.play_counter = random.randint(min_time, max_time)
                 return self.play(self.last_played_with_nick)
             else:
-                min_time = round(20 * energy_multiplier / self.energy)
-                max_time = round(80 * energy_multiplier / self.energy)
+                min_time = round(20 / self.energy_level + 20)
+                max_time = round(140 / self.energy_level + 20)
                 self.play_counter = random.randint(min_time, max_time)
                 return self.play()
         else:
             self.play_counter -= 1
+            return None
 
 
 @hook.on_start()
@@ -216,6 +229,32 @@ def load_pets(bot, db):
         pet_types = pet_config["pet_types"]
         energy_multiplier = pet_config["energy_multiplier"]
         max_hunger = pet_config["max_hunger"]
+
+
+@hook.irc_raw("004")
+def init_pets(conn: IrcClient, message):
+    time.sleep(10)
+    users = conn.memory['users']  # type: dict
+
+    output = {}
+    for pet in pets.values():  # type: Pet
+        if pet.owner in users:
+            if pet.channel in users[pet.owner]['channels']:
+                # owner is here, wakeup silently
+                pet.wakeup()
+                pet.update_play()
+                if pet.channel in output:
+                    output[pet.channel] += " " + pet.name
+                else:
+                    output[pet.channel] = "Woke up pets: " + pet.name
+            else:
+                # owner not online, sleep silently
+                pet.sleep(True)
+
+    for chan, outstr in output.items():  # type: str,str
+        message(outstr, chan)
+
+    return
 
 
 @hook.command("addpet", "apet")
@@ -343,7 +382,7 @@ def _feed_pet(pet_name, nick, message):
     """
     if pet_name in pets:
         cur_pet = pets[pet_name]  # type: Pet
-        if cur_pet.hunger >= max_hunger * 3/4:
+        if cur_pet.hunger >= max_hunger * 3 / 4:
             # hungry enough to eat
             cur_pet.hunger = 0
             response = cur_pet.get_action('eat_actions', nick)
@@ -386,10 +425,11 @@ def _play_pet(pet_name, nick, message):
         cur_pet.last_played_with_nick = nick
         cur_pet.last_played_with_counter = 0
 
-        min_time = round(4 / cur_pet.energy)
-        max_time = round(8 / cur_pet.energy)
+        min_time = round(3 / cur_pet.energy_level + 2)
+        max_time = round(8 / cur_pet.energy_level + 2)
         cur_pet.play_counter = random.randint(min_time, max_time)
 
+        time.sleep(5)
         response = cur_pet.play(nick)
         if response is not None:
             message("\x1D*" + cur_pet.name + " " + response + "*\x1D")
@@ -473,7 +513,11 @@ def update_pet_states(bot, logger):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
 
         response = pet.update_play()
-        logger.info("lpw: {}, lpc: {}, pc: {}, e: {}".format(pet.last_played_with_nick, pet.last_played_with_counter, pet.play_counter, pet.energy))
+        logger.info("[pet] {} - lpw: {}, lpc: {}, pc: {}, el: {}".format(pet.name,
+                                                                         pet.last_played_with_nick,
+                                                                         pet.last_played_with_counter, pet.play_counter,
+                                                                         pet.energy_level))
+
         if (response is not None) and (pet.channel is not None):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
 
