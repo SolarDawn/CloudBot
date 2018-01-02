@@ -251,7 +251,7 @@ def load_pets(bot, db):
         max_hunger = pet_config["max_hunger"]
 
 
-@hook.command()
+@hook.command(permissions=["petconfig"])
 def save_config(bot, notice):
     path = os.path.join(bot.data_dir, "pet.json")
     with open(path, encoding="utf-8", mode='w') as f:
