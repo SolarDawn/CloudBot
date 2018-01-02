@@ -21,6 +21,8 @@ pet_table = Table(
 )
 
 pets = {}
+pet_config = {} # type: dict
+pet_types = {} # type: dict
 
 
 class Pet:
@@ -188,6 +190,9 @@ class Pet:
             if self.last_played_with_counter >= 10:
                 # disengage with user
                 self.last_played_with_nick = None
+                self.last_played_with_counter = 0
+                self.play_counter = random.randint(20, 110)
+                return None
 
         if self.sleeping:
             return None
@@ -246,11 +251,13 @@ def load_pets(bot, db):
         max_hunger = pet_config["max_hunger"]
 
 
-@hook.on_stop()
-def stop(bot):
+@hook.command()
+def save_config(bot, notice):
     path = os.path.join(bot.data_dir, "pet.json")
     with open(path, encoding="utf-8", mode='w') as f:
         json.dump(pet_config, f, indent=4)
+
+    notice("pet config saved successfully")
 
 
 @hook.irc_raw("004")
@@ -282,7 +289,7 @@ def init_pets(conn: IrcClient, message):
 @hook.command("addpet", "apet")
 def addpet(event, db, nick, text, chan):
     """[pet name] [pet species] - creates a new pet"""
-    args = text.split(" ")
+    args = _parse_args(text)
     if len(args) < 2:
         event.notice_doc()
         return
@@ -303,7 +310,7 @@ def addpet(event, db, nick, text, chan):
 @hook.command("removepet", "rempet", "rpet")
 def removepet(event, db, nick, text, has_permission):
     """[pet name] - removes a pet that belongs to you"""
-    args = text.split(" ")
+    args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
         return
@@ -341,7 +348,7 @@ beckon_re = re.compile(r'(?:come(?: here)|here|hey|beckons) (\w+)', re.I)
 def beckon(match, nick, message):
     if match.group(1) in pets:
         cur_pet = pets[match.group(1)]  # type: Pet
-        response = cur_pet.get_action('greetings', nick)
+        response = cur_pet.get_action('greeting_actions', nick)
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
 
@@ -356,7 +363,7 @@ def affection_regex(match, nick, message):
 @hook.command("pet", "rub", "scratch", "boop")
 def affection(text, nick, message, event):
     """[pet name] - show affection towards a pet"""
-    args = text.split(" ")
+    args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
     else:
@@ -387,7 +394,7 @@ def feed_regex(match, nick, message):
 @hook.command()
 def feed(text, nick, message, event):
     """[pet name] - feeds a pet"""
-    args = text.split(" ")
+    args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
     else:
@@ -418,7 +425,7 @@ def _feed_pet(pet_name, nick, message):
 @hook.command()
 def playwith(text, nick, message, event):
     """[pet name] - plays with a pet"""
-    args = text.split(" ")
+    args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
     else:
@@ -508,7 +515,7 @@ def on_join(message, conn, nick, chan):
                     response = pet.wakeup()
                     message("\x1D*" + name + " " + response + "*\x1D", chan)
                 else:
-                    response = pet.get_action("greetings", nick)
+                    response = pet.get_action("greeting_actions", nick)
                     message("\x1D*" + name + " " + response + "*\x1D", chan)
 
     return
@@ -547,3 +554,92 @@ def update_pet_states(bot, logger):
                                                                              pet.play_counter, status))
 
     return
+
+
+@hook.command()
+def list_actions(text, event, notice):
+    """[species] [action type] - list configured actions for a species"""
+    args = _parse_args(text)
+    if len(args) < 1:
+        event.notice_doc()
+        return
+
+    if args[0] in pet_types:
+        if len(args) < 2:
+            # list types
+            outstr = "Action types defined for {}:".format(args[0])
+            for key, value in pet_types[args[0]].items():
+                if type(value) is list:
+                    outstr += " " + key
+        else:
+            # list specific
+            if args[1] in pet_types[args[0]]:
+                outstr = "{} for {}:".format(args[1], args[0])
+                i = 0
+                for action in pet_types[args[0]][args[1]]:
+                    if i > 0:
+                        outstr += ","
+                    outstr += " [{}] {}".format(i, action)
+                    i += 1
+            else:
+                outstr = "No actions under that type in the config"
+    else:
+        outstr = "That species was not found in the config. It can be added with \"add_species <species>\""
+
+    notice(outstr)
+
+
+@hook.command(permissions=["petconfig"])
+def add_action(text, event, bot, notice):
+    """[species] [action type] [action text] - add an action for a species, <nick> is replaced when the action runs"""
+    args = _parse_args(text)
+    if len(args) < 3:
+        event.notice_doc()
+        return
+
+    species = args[0]
+    a_type = args[1]
+    a_text = args[2]
+
+    if species not in pet_types:
+        pet_types[species] = {}
+
+    if a_type not in pet_types[species]:
+        if a_type in pet_types['default']:
+            pet_types[species][a_type] = []
+        else:
+            outstr = "Action type is not supported. Available types: "
+            for k in list(pet_types['default'].keys()):
+                outstr += " " + k
+            notice(outstr)
+
+    pet_types[species][a_type].append(a_text)
+    notice("Action added successfully")
+    save_config(bot, notice)
+
+
+@hook.command(permissions=["petconfig"])
+def rem_action(text, event, bot, notice):
+    """[species] [action type] [action #] - remove an action from the config"""
+    args = _parse_args(text)
+    if len(args) < 3:
+        event.notice_doc()
+        return
+
+    species = args[0]
+    a_type = args[1]
+    a_index = int(args[2])
+
+    if species in pet_types and a_type in pet_types[species] and (0 <= a_index < len(pet_types[species][a_type])):
+        # valid
+        del pet_types[species][a_type][a_index]
+        notice("Action removed successfully")
+        save_config(bot, notice)
+
+    else:
+        # no such action
+        notice("Action not found, use .list_actions to see current config")
+
+
+def _parse_args(arg_str: str):
+    return [p.strip('"') for p in re.split(r"( |\".*?\")", arg_str) if p.strip()]

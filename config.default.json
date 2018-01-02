@@ -47,7 +47,8 @@
                         "botcontrol",
                         "plpaste",
                         "permissions_users",
-                        "op"
+                        "op",
+                        "petconfig"
                     ],
                     "users": [
                         "examplea!user@example.com",
@@ -58,7 +59,8 @@
                     "perms": [
                         "addfactoid",
                         "delfactoid",
-                        "ignore"
+                        "ignore",
+                        "petconfig"
                     ],
                     "users": [
                         "examplec!user@example.com"
@@ -70,31 +72,6 @@
         }
     ],
     "api_keys": {
-        "tvdb": "",
-        "bing_azure": "",
-        "wolframalpha": "",
-        "lastfm": "",
-        "rottentomatoes": "",
-        "soundcloud": "",
-        "twitter_consumer_key": "",
-        "twitter_consumer_secret": "",
-        "twitter_access_token": "",
-        "twitter_access_secret": "",
-        "imgur_client_id": "",
-        "imgur_client_secret": "",
-        "spotify_client_id": "",
-        "spotify_client_secret": "",
-        "wunderground": "",
-        "rdio_key": "",
-        "rdio_secret": "",
-        "google_dev_key": "",
-        "google_cse_id": "",
-        "octopart": "",
-        "wordnik": "",
-        "yandex_translate": "",
-        "lyricsnmusic": "",
-        "cleverbot": "",
-        "brewerydb": ""
     },
     "database": "sqlite:///cloudbot.db",
     "plugin_loading": {

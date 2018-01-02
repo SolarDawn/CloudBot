@@ -4,7 +4,7 @@
     "pet_types": {
         "default": {
             "energy": 1,
-            "greetings": [
+            "greeting_actions": [
                 "nuzzles <nick>",
                 "jumps on <nick>'s lap",
                 "cuddles up to <nick>",
@@ -47,7 +47,7 @@
         },
         "cat": {
             "energy": 1,
-            "greetings": [
+            "greeting_actions": [
                 "nuzzles <nick>",
                 "jumps on <nick>'s lap",
                 "cuddles up to <nick>",
@@ -72,7 +72,7 @@
         },
         "dog": {
             "energy": 2,
-            "greetings": [
+            "greeting_actions": [
                 "runs over to <nick>",
                 "jumps on <nick>",
                 "runs in circles around <nick>"
@@ -99,7 +99,7 @@
         },
         "fox": {
             "energy": 2,
-            "greetings": [
+            "greeting_actions": [
                 "runs over to <nick>",
                 "jumps on <nick>",
                 "runs in circles around <nick>",
