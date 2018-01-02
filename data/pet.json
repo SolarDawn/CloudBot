@@ -39,6 +39,9 @@
                 "wakes up and jumps out of bed"
             ],
             "play_actions": [
+                "plays with one of their toys"
+            ],
+            "play_with_actions": [
                 "plays with <nick>"
             ]
         },
@@ -58,10 +61,13 @@
             ],
             "play_actions": [
                 "bats at a piece of lint",
-                "tugs at <nick>'s shirt with their claws",
                 "rolls around with a ball of string",
                 "climbs inside a cardboard box",
                 "pounces on a toy mouse"
+            ],
+            "play_with_actions": [
+                "tugs at <nick>'s shirt with their claws",
+                "climbs on <nick>"
             ]
         },
         "dog": {
@@ -80,11 +86,15 @@
                 "wags their tail"
             ],
             "play_actions": [
+                "gnaws on one of their bones",
+                "chews on a stuffed toy",
+                "carries around a tennis ball"
+            ],
+            "play_with_actions": [
                 "plays tug-of-war with <nick>",
                 "jumps on <nick>",
                 "runs around <nick>",
-                "steals a stuffed toy from <nick> and runs",
-                "chews on one of their bones"
+                "steals a treat from <nick> and runs"
             ]
         },
         "fox": {
@@ -104,10 +114,15 @@
                 "wags their tail"
             ],
             "play_actions": [
+                "pounces on a stuffed animal",
+                "tears the stuffing out of a toy",
+                "sprints around the room",
+                "jumps on the furniture"
+            ],
+            "play_with_actions": [
                 "runs around <nick>",
                 "pounces on <nick>",
-                "pounces on a stuffed animal",
-                ""
+                "chews on <nick>'s hand"
             ]
         }
     }

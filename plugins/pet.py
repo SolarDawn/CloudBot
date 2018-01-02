@@ -180,8 +180,9 @@ class Pet:
 
     def play(self, nick=None):
         if nick is None:
-            nick = self.owner
-        return self.get_action("play_actions", nick)
+            return self.get_action("play_actions")
+        else:
+            return self.get_action("play_with_actions", nick)
 
     def update_play(self):
         if self.last_played_with_nick is not None:
@@ -194,17 +195,32 @@ class Pet:
             return None
 
         if self.play_counter <= 0:
-            # play!
             if self.last_played_with_nick is not None:
-                min_time = round(3 / self.energy_level + 2)
-                max_time = round(8 / self.energy_level + 2)
-                self.play_counter = random.randint(min_time, max_time)
+                # play with last engaged
+                self.play_counter = random.randint(4, 10)  # between 4 & 10 min
                 return self.play(self.last_played_with_nick)
             else:
-                min_time = round(20 / self.energy_level + 20)
-                max_time = round(140 / self.energy_level + 20)
-                self.play_counter = random.randint(min_time, max_time)
-                return self.play()
+                # play randomly
+                self.play_counter = random.randint(30, 120)  # between 30 min and 2 hrs
+                play_type = random.randint(1, 4)
+                if play_type <= 2:
+                    # play alone
+                    return self.play()
+                elif play_type == 3:
+                    # play with other pet
+                    other_pets = {}
+                    for name, pet in pets.items():  # type: str,Pet
+                        if pet.channel == self.channel:
+                            other_pets[name] = pet
+
+                    if len(other_pets) > 0:
+                        other_name = random.choice(list(other_pets))
+                        return self.play(other_name)
+
+                    return self.play()
+                else:
+                    # play with owner
+                    return self.play(self.owner)
         else:
             self.play_counter -= 1
             return None
@@ -247,9 +263,9 @@ def init_pets(conn: IrcClient, message):
                     output[pet.channel] += " " + pet.name
                 else:
                     output[pet.channel] = "Woke up pets: " + pet.name
-            else:
-                # owner not online, sleep silently
-                pet.sleep(True)
+        else:
+            # owner not online, sleep silently
+            pet.sleep(True)
 
     for chan, outstr in output.items():  # type: str,str
         message(outstr, chan)
@@ -279,7 +295,7 @@ def addpet(event, db, nick, text, chan):
 
 
 @hook.command("removepet", "rempet", "rpet")
-def removepet(event, db, nick, text):
+def removepet(event, db, nick, text, has_permission):
     """[pet name] - removes a pet that belongs to you"""
     args = text.split(" ")
     if len(args) < 1:
@@ -289,7 +305,7 @@ def removepet(event, db, nick, text):
     if args[0] in pets:
         # pet exists
         delpet = pets[args[0]]
-        if nick == delpet.owner:
+        if nick == delpet.owner or has_permission("botcontrol"):
             db.execute(pet_table.delete().where(pet_table.c.pet_name == args[0]))
             db.commit()
             del pets[args[0]]
@@ -425,9 +441,7 @@ def _play_pet(pet_name, nick, message):
         cur_pet.last_played_with_nick = nick
         cur_pet.last_played_with_counter = 0
 
-        min_time = round(3 / cur_pet.energy_level + 2)
-        max_time = round(8 / cur_pet.energy_level + 2)
-        cur_pet.play_counter = random.randint(min_time, max_time)
+        cur_pet.play_counter = random.randint(4, 10)
 
         time.sleep(5)
         response = cur_pet.play(nick)
@@ -480,7 +494,7 @@ def on_leave(irc_raw, message, conn, nick, chan):
 
 
 @hook.irc_raw("JOIN")
-def on_join(irc_raw, message, conn, nick, chan):
+def on_join(message, conn, nick, chan):
     if nick != conn.nick:
         for name, pet in pets.items():
             if pet.owner == nick and pet.channel == chan:
@@ -513,12 +527,17 @@ def update_pet_states(bot, logger):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
 
         response = pet.update_play()
-        logger.info("[pet] {} - lpw: {}, lpc: {}, pc: {}, el: {}".format(pet.name,
-                                                                         pet.last_played_with_nick,
-                                                                         pet.last_played_with_counter, pet.play_counter,
-                                                                         pet.energy_level))
 
         if (response is not None) and (pet.channel is not None):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
+
+        if pet.sleeping:
+            status = "sleeping"
+        else:
+            status = "awake"
+
+        logger.info("[pet] {} - lpw: {}, lpc: {}, pc: {}, status: {}".format(pet.name, pet.last_played_with_nick,
+                                                                             pet.last_played_with_counter,
+                                                                             pet.play_counter, status))
 
     return
