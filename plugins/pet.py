@@ -1,16 +1,14 @@
-import os
-import codecs
 import json
+import os
 import random
 import re
-
 import time
+
 from sqlalchemy import Table, Column, PrimaryKeyConstraint, String
 
 from cloudbot import hook
-from cloudbot.util import database
-
 from cloudbot.clients.irc import IrcClient
+from cloudbot.util import database
 
 pet_table = Table(
     "pets",
@@ -236,15 +234,23 @@ def load_pets(bot, db):
 
     path = os.path.join(bot.data_dir, "pet.json")
 
+    global pet_config
     global pet_types
     global energy_multiplier
     global max_hunger
 
-    with codecs.open(path, encoding="utf-8") as f:
+    with open(path, encoding="utf-8", mode='r') as f:
         pet_config = json.load(f)
         pet_types = pet_config["pet_types"]
         energy_multiplier = pet_config["energy_multiplier"]
         max_hunger = pet_config["max_hunger"]
+
+
+@hook.on_stop()
+def stop(bot):
+    path = os.path.join(bot.data_dir, "pet.json")
+    with open(path, encoding="utf-8", mode='w') as f:
+        json.dump(pet_config, f, indent=4)
 
 
 @hook.irc_raw("004")
