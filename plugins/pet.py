@@ -184,7 +184,7 @@ class Pet:
         else:
             return self.get_action("play_with_actions", nick)
 
-    def update_play(self):
+    def update_play(self, conn: IrcClient):
         if self.last_played_with_nick is not None:
             self.last_played_with_counter += 1
             if self.last_played_with_counter >= 10:
@@ -222,8 +222,13 @@ class Pet:
 
                     return self.play()
                 else:
-                    # play with owner
-                    return self.play(self.owner)
+                    # play with user
+                    users = [nick for nick, user in conn.memory['users'].items()
+                             if self.channel in user['channels'] and nick != conn.nick]
+                    if len(users) > 0:
+                        return self.play(random.choice(users))
+                    else:
+                        return self.play(self.owner)
         else:
             self.play_counter -= 1
             return None
@@ -273,7 +278,7 @@ def init_pets(conn: IrcClient, message):
             if pet.channel in users[usermap[pet.owner]]['channels']:
                 # owner is here, wakeup silently
                 pet.wakeup()
-                pet.update_play()
+                pet.update_play(conn)
                 if pet.channel in output:
                     output[pet.channel] += " " + pet.name
                 else:
@@ -364,7 +369,7 @@ def affection_regex(match, nick, message):
 
 @hook.command("pet", "rub", "scratch", "boop")
 def affection(text, nick, message, event):
-    """[pet name] - show affection towards a pet"""
+    """<pet name> - show affection towards a pet"""
     args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
@@ -395,7 +400,7 @@ def feed_regex(match, nick, message):
 
 @hook.command()
 def feed(text, nick, message, event):
-    """[pet name] - feeds a pet"""
+    """<pet name> - feeds a pet"""
     args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
@@ -543,7 +548,7 @@ def update_pet_states(bot, logger):
         if (response is not None) and (pet.channel is not None):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
 
-        response = pet.update_play()
+        response = pet.update_play(my_conn)
 
         if (response is not None) and (pet.channel is not None):
             my_conn.message(pet.channel, "\x1D*" + name + " " + response + "*\x1D")
