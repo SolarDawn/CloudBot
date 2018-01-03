@@ -21,8 +21,8 @@ pet_table = Table(
 )
 
 pets = {}
-pet_config = {} # type: dict
-pet_types = {} # type: dict
+pet_config = {}  # type: dict
+pet_types = {}  # type: dict
 
 
 class Pet:
@@ -424,7 +424,7 @@ def _feed_pet(pet_name, nick, message):
 
 @hook.command()
 def playwith(text, nick, message, event):
-    """[pet name] - plays with a pet"""
+    """<pet name> - plays with a pet"""
     args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
@@ -558,7 +558,7 @@ def update_pet_states(bot, logger):
 
 @hook.command()
 def list_actions(text, event, notice):
-    """[species] [action type] - list configured actions for a species"""
+    """<species> [action type] - list configured actions for a species"""
     args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
@@ -584,14 +584,46 @@ def list_actions(text, event, notice):
             else:
                 outstr = "No actions under that type in the config"
     else:
-        outstr = "That species was not found in the config. It can be added with \"add_species <species>\""
+        outstr = "That species was not found in the config. It can be added with \".add_species <species>\""
 
     notice(outstr)
 
 
 @hook.command(permissions=["petconfig"])
+def add_species(text, event, bot, notice):
+    """<species> - add a new species to the config"""
+    args = _parse_args(text)
+    if len(args) < 1:
+        event.notice_doc()
+        return
+
+    if args[0] not in pet_types:
+        pet_types[args[0]] = {}
+        notice("Added species " + args[0])
+        save_config(bot, notice)
+    else:
+        notice("That species already exists in the config")
+
+
+@hook.command(permissions=["petconfig"])
+def rem_species(text, event, bot, notice):
+    """<species> - remove a species from the config"""
+    args = _parse_args(text)
+    if len(args) < 1:
+        event.notice_doc()
+        return
+
+    if args[0] in pet_types:
+        del pet_types[args[0]]
+        notice("Removed species " + args[0])
+        save_config(bot, notice)
+    else:
+        notice("Species does not exist in config")
+
+
+@hook.command(permissions=["petconfig"])
 def add_action(text, event, bot, notice):
-    """[species] [action type] [action text] - add an action for a species, <nick> is replaced when the action runs"""
+    """<species> <action type> <action text> - add an action for a species, <nick> is replaced when the action runs"""
     args = _parse_args(text)
     if len(args) < 3:
         event.notice_doc()
@@ -602,7 +634,7 @@ def add_action(text, event, bot, notice):
     a_text = args[2]
 
     if species not in pet_types:
-        pet_types[species] = {}
+        notice("Species not found in config, use .add_species [species]")
 
     if a_type not in pet_types[species]:
         if a_type in pet_types['default']:
@@ -620,7 +652,7 @@ def add_action(text, event, bot, notice):
 
 @hook.command(permissions=["petconfig"])
 def rem_action(text, event, bot, notice):
-    """[species] [action type] [action #] - remove an action from the config"""
+    """<species> <action type> <action #> - remove an action from the config"""
     args = _parse_args(text)
     if len(args) < 3:
         event.notice_doc()
@@ -634,6 +666,8 @@ def rem_action(text, event, bot, notice):
         # valid
         del pet_types[species][a_type][a_index]
         notice("Action removed successfully")
+        if len(pet_types[species][a_type]) == 0:
+            del pet_types[species][a_type]
         save_config(bot, notice)
 
     else:
