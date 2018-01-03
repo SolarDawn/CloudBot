@@ -561,39 +561,6 @@ def update_pet_states(bot, logger):
 
 
 @hook.command()
-def list_actions(text, event, notice):
-    """<species> [action type] - list configured actions for a species"""
-    args = _parse_args(text)
-    if len(args) < 1:
-        event.notice_doc()
-        return
-
-    if args[0] in pet_types:
-        if len(args) < 2:
-            # list types
-            outstr = "Action types defined for {}:".format(args[0])
-            for key, value in pet_types[args[0]].items():
-                if type(value) is list:
-                    outstr += " " + key
-        else:
-            # list specific
-            if args[1] in pet_types[args[0]]:
-                outstr = "{} for {}:".format(args[1], args[0])
-                i = 0
-                for action in pet_types[args[0]][args[1]]:
-                    if i > 0:
-                        outstr += ","
-                    outstr += " [{}] {}".format(i, action)
-                    i += 1
-            else:
-                outstr = "No actions under that type in the config"
-    else:
-        outstr = "That species was not found in the config. It can be added with \".add_species <species>\""
-
-    notice(outstr)
-
-
-@hook.command()
 def list_species(notice):
     """list all species defined in the config"""
     first = True
@@ -636,6 +603,39 @@ def rem_species(text, event, bot, notice):
         save_config(bot, notice)
     else:
         notice("Species does not exist in config")
+
+
+@hook.command()
+def list_actions(text, event, notice):
+    """<species> [action type] - list configured actions for a species"""
+    args = _parse_args(text)
+    if len(args) < 1:
+        event.notice_doc()
+        return
+
+    if args[0] in pet_types:
+        if len(args) < 2:
+            # list types
+            outstr = "Action types defined for {}:".format(args[0])
+            for key, value in pet_types[args[0]].items():
+                if type(value) is list:
+                    outstr += " " + key
+        else:
+            # list specific
+            if args[1] in pet_types[args[0]]:
+                outstr = "{} for {}:".format(args[1], args[0])
+                i = 0
+                for action in pet_types[args[0]][args[1]]:
+                    if i > 0:
+                        outstr += ","
+                    outstr += " [{}] {}".format(i, action)
+                    i += 1
+            else:
+                outstr = "No actions under that type in the config"
+    else:
+        outstr = "That species was not found in the config. It can be added with \".add_species <species>\""
+
+    notice(outstr)
 
 
 @hook.command(permissions=["petconfig"])
