@@ -266,9 +266,11 @@ def init_pets(conn: IrcClient, message):
     users = conn.memory['users']  # type: dict
 
     output = {}
+    usermap = {nick.lower(): nick for nick in users.keys()}
+
     for pet in pets.values():  # type: Pet
-        if pet.owner in users:
-            if pet.channel in users[pet.owner]['channels']:
+        if pet.owner in usermap:
+            if pet.channel in users[usermap[pet.owner]]['channels']:
                 # owner is here, wakeup silently
                 pet.wakeup()
                 pet.update_play()
@@ -288,7 +290,7 @@ def init_pets(conn: IrcClient, message):
 
 @hook.command("addpet", "apet")
 def addpet(event, db, nick, text, chan):
-    """[pet name] [pet species] - creates a new pet"""
+    """<pet name> <pet species> - creates a new pet"""
     args = _parse_args(text)
     if len(args) < 2:
         event.notice_doc()
@@ -299,7 +301,7 @@ def addpet(event, db, nick, text, chan):
         return "Pet by that name already exists"
     else:
         # add
-        newpet = Pet(args[0], nick, args[1], chan)
+        newpet = Pet(args[0], nick.lower(), args[1], chan)
         pets[newpet.name] = newpet
         db.execute(pet_table.insert().values(pet_name=newpet.name, owner_name=newpet.owner, pet_type=newpet.species,
                                              channel=newpet.channel))
@@ -309,7 +311,7 @@ def addpet(event, db, nick, text, chan):
 
 @hook.command("removepet", "rempet", "rpet")
 def removepet(event, db, nick, text, has_permission):
-    """[pet name] - removes a pet that belongs to you"""
+    """<pet name> - removes a pet that belongs to you"""
     args = _parse_args(text)
     if len(args) < 1:
         event.notice_doc()
@@ -497,6 +499,7 @@ def parse_actions(irc_raw, message):
 
 @hook.irc_raw(["PART", "QUIT"])
 def on_leave(irc_raw, message, conn, nick, chan):
+    nick = nick.lower()
     if nick != conn.nick and (irc_raw.lower().find("changing host") == -1):
         for name, pet in pets.items():
             if pet.owner == nick:
@@ -508,6 +511,7 @@ def on_leave(irc_raw, message, conn, nick, chan):
 
 @hook.irc_raw("JOIN")
 def on_join(message, conn, nick, chan):
+    nick = nick.lower()
     if nick != conn.nick:
         for name, pet in pets.items():
             if pet.owner == nick and pet.channel == chan:
@@ -585,6 +589,19 @@ def list_actions(text, event, notice):
                 outstr = "No actions under that type in the config"
     else:
         outstr = "That species was not found in the config. It can be added with \".add_species <species>\""
+
+    notice(outstr)
+
+
+@hook.command()
+def list_species(notice):
+    """list all species defined in the config"""
+    first = True
+    outstr = ""
+    for species in pet_types:
+        if not first:
+            outstr += ","
+        outstr += " " + species
 
     notice(outstr)
 
