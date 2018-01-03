@@ -380,6 +380,7 @@ def affection(text, nick, message, event):
 def _love_pet(pet_name, nick, message):
     if pet_name in pets:
         cur_pet = pets[pet_name]  # type: Pet
+        time.sleep(5)
         response = cur_pet.get_action('happy_actions', nick)
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
@@ -418,6 +419,7 @@ def _feed_pet(pet_name, nick, message):
     """
     if pet_name in pets:
         cur_pet = pets[pet_name]  # type: Pet
+        time.sleep(5)
         if cur_pet.hunger >= max_hunger * 3 / 4:
             # hungry enough to eat
             cur_pet.hunger = 0
