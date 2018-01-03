@@ -124,6 +124,33 @@
                 "pounces on <nick>",
                 "chews on <nick>'s hand"
             ]
+        },
+        "sheep":{
+            "energy": 1,
+            "greeting_actions": [
+                "runs over to <nick>",
+                "jumps on <nick>",
+                "nuzzles <nick>",
+                ],
+            "happy_actions": [
+                "wiggles",
+                "stretches",
+                "baaa's",
+                "rolls on ground",
+                "snuggles into <nick>"
+                ],
+            "play_actions": [
+                "pounces on a stuffed animal",
+                "tears the stuffing out of a toy",
+                "sprints around the room",
+                "jumps on the furniture"
+                ],
+            "play_with_actions": [
+                "runs around <nick>",
+                "pounces on <nick>",
+                "chews on <nick>'s hand"
+                ]
+            }
         }
     }
 }
