@@ -640,7 +640,7 @@ def listactions(text, event, notice):
             else:
                 outstr = "No actions under that type in the config"
     else:
-        outstr = "That species was not found in the config. It can be added with \".add_species <species>\""
+        outstr = "That species was not found in the config. It can be added with \"|add_species <species>\""
 
     notice(outstr)
 
@@ -658,7 +658,7 @@ def addaction(text, event, bot, notice):
     a_text = args[2]
 
     if species not in pet_types:
-        notice("Species not found in config, use .add_species [species]")
+        notice("Species not found in config, use |add_species [species]")
 
     if a_type not in pet_types[species]:
         if a_type in pet_types['default']:
@@ -696,7 +696,7 @@ def remaction(text, event, bot, notice):
 
     else:
         # no such action
-        notice("Action not found, use .list_actions to see current config")
+        notice("Action not found, use |list_actions to see current config")
 
 
 def _parse_args(arg_str: str):

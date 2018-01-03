@@ -68,7 +68,7 @@
                 }
             },
             "plugins": {},
-            "command_prefix": "."
+            "command_prefix": "|"
         }
     ],
     "api_keys": {
