@@ -591,7 +591,7 @@ def addspecies(text, event, bot, notice):
     if args[0] not in pet_types:
         pet_types[args[0]] = {}
         notice("Added species " + args[0])
-        save_config(bot, notice)
+        saveconfig(bot, notice)
     else:
         notice("That species already exists in the config")
 
@@ -607,7 +607,7 @@ def remspecies(text, event, bot, notice):
     if args[0] in pet_types:
         del pet_types[args[0]]
         notice("Removed species " + args[0])
-        save_config(bot, notice)
+        saveconfig(bot, notice)
     else:
         notice("Species does not exist in config")
 
@@ -671,7 +671,7 @@ def addaction(text, event, bot, notice):
 
     pet_types[species][a_type].append(a_text)
     notice("Action added successfully")
-    save_config(bot, notice)
+    saveconfig(bot, notice)
 
 
 @hook.command(permissions=["petconfig"])
@@ -692,7 +692,7 @@ def remaction(text, event, bot, notice):
         notice("Action removed successfully")
         if len(pet_types[species][a_type]) == 0:
             del pet_types[species][a_type]
-        save_config(bot, notice)
+        saveconfig(bot, notice)
 
     else:
         # no such action
