@@ -352,7 +352,7 @@ def listpets():
         return outstr
 
 
-beckon_re = re.compile(r'(?:come(?: here)|here|hey|beckons) (\w+)', re.I)
+beckon_re = re.compile(r'(?:come(?: here)|here|hey|beckons) ([\w ]+)', re.I)
 
 
 @hook.regex(beckon_re)
@@ -363,7 +363,7 @@ def beckon(match, nick, message):
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
 
-affection_re = re.compile(r'(?:pets|rubs|scratches|boops) (\w+)', re.I)
+affection_re = re.compile(r'(?:pets|rubs|scratches|boops) ([\w ]+)', re.I)
 
 
 @hook.regex(affection_re)
@@ -372,13 +372,13 @@ def affection_regex(match, nick, message):
 
 
 @hook.command("pet", "rub", "scratch", "boop")
-def affection(text, nick, message, event):
+def affection(text, nick, message):
     """<pet name> - show affection towards a pet"""
-    args = _parse_args(text)
-    if len(args) < 1:
-        event.notice_doc()
-    else:
-        _love_pet(args[0], nick, message)
+    # args = _parse_args(text)
+    # if len(args) < 1:
+    #     event.notice_doc()
+    # else:
+    _love_pet(text, nick, message)
 
 
 def _love_pet(pet_name, nick, message):
@@ -389,7 +389,7 @@ def _love_pet(pet_name, nick, message):
         message("\x1D*" + cur_pet.name + " " + response + "*\x0F")
 
 
-feed_re = re.compile(r'feeds (\w+)|fills (\w+)(?:\'s)? (?:food|(?:bowl|dish))|gives (\w+) (?:some )?food', re.I)
+feed_re = re.compile(r'feeds ([\w ]+)|fills ([\w ]+)(?:\'s)? (?:food|(?:bowl|dish))|gives ([\w ]+) (?:some )?food', re.I)
 
 
 @hook.regex(feed_re)
@@ -404,13 +404,13 @@ def feed_regex(match, nick, message):
 
 
 @hook.command()
-def feed(text, nick, message, event):
+def feed(text, nick, message):
     """<pet name> - feeds a pet"""
-    args = _parse_args(text)
-    if len(args) < 1:
-        event.notice_doc()
-    else:
-        _feed_pet(args[0], nick, message)
+    # args = _parse_args(text)
+    # if len(args) < 1:
+    #     event.notice_doc()
+    # else:
+    _feed_pet(text, nick, message)
 
 
 def _feed_pet(pet_name, nick, message):
@@ -445,7 +445,7 @@ def playwith(text, nick, message, event):
         _play_pet(args[0], nick, message)
 
 
-play_re = re.compile(r'plays with (\w+)', re.I)
+play_re = re.compile(r'plays with ([\w ]+)', re.I)
 
 
 @hook.regex(play_re)
