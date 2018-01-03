@@ -581,7 +581,7 @@ def list_species(notice):
 
 
 @hook.command(permissions=["petconfig"])
-def add_species(text, event, bot, notice):
+def addspecies(text, event, bot, notice):
     """<species> - add a new species to the config"""
     args = _parse_args(text)
     if len(args) < 1:
@@ -597,7 +597,7 @@ def add_species(text, event, bot, notice):
 
 
 @hook.command(permissions=["petconfig"])
-def rem_species(text, event, bot, notice):
+def remspecies(text, event, bot, notice):
     """<species> - remove a species from the config"""
     args = _parse_args(text)
     if len(args) < 1:
@@ -613,7 +613,7 @@ def rem_species(text, event, bot, notice):
 
 
 @hook.command()
-def list_actions(text, event, notice):
+def listactions(text, event, notice):
     """<species> [action type] - list configured actions for a species"""
     args = _parse_args(text)
     if len(args) < 1:
@@ -646,7 +646,7 @@ def list_actions(text, event, notice):
 
 
 @hook.command(permissions=["petconfig"])
-def add_action(text, event, bot, notice):
+def addaction(text, event, bot, notice):
     """<species> <action type> <action text> - add an action for a species, <nick> is replaced when the action runs"""
     args = _parse_args(text)
     if len(args) < 3:
@@ -675,7 +675,7 @@ def add_action(text, event, bot, notice):
 
 
 @hook.command(permissions=["petconfig"])
-def rem_action(text, event, bot, notice):
+def remaction(text, event, bot, notice):
     """<species> <action type> <action #> - remove an action from the config"""
     args = _parse_args(text)
     if len(args) < 3:
