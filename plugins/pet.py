@@ -213,7 +213,7 @@ class Pet:
                     # play with other pet
                     other_pets = {}
                     for name, pet in pets.items():  # type: str,Pet
-                        if pet.channel == self.channel:
+                        if pet.name != self.name and pet.channel == self.channel:
                             other_pets[name] = pet
 
                     if len(other_pets) > 0:
@@ -295,7 +295,7 @@ def init_pets(conn: IrcClient, message):
 
 @hook.command("addpet", "apet")
 def addpet(event, db, nick, text, chan):
-    """<pet name> <pet species> - creates a new pet"""
+    """<pet name> <pet species> [channel] - creates a new pet"""
     args = _parse_args(text)
     if len(args) < 2:
         event.notice_doc()
@@ -306,7 +306,11 @@ def addpet(event, db, nick, text, chan):
         return "Pet by that name already exists"
     else:
         # add
-        newpet = Pet(args[0], nick.lower(), args[1], chan)
+        pet_chan = chan
+        if len(args) == 3:
+            pet_chan = args[2]
+
+        newpet = Pet(args[0], nick.lower(), args[1], pet_chan)
         pets[newpet.name] = newpet
         db.execute(pet_table.insert().values(pet_name=newpet.name, owner_name=newpet.owner, pet_type=newpet.species,
                                              channel=newpet.channel))
