@@ -257,7 +257,7 @@ def load_pets(bot, db):
 
 
 @hook.command(permissions=["petconfig"])
-def save_config(bot, notice):
+def saveconfig(bot, notice):
     path = os.path.join(bot.data_dir, "pet.json")
     with open(path, encoding="utf-8", mode='w') as f:
         json.dump(pet_config, f, indent=4)
@@ -568,7 +568,7 @@ def update_pet_states(bot, logger):
 
 
 @hook.command()
-def list_species(notice):
+def listspecies(notice):
     """list all species defined in the config"""
     first = True
     outstr = ""
